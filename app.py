@@ -31,29 +31,27 @@ def load_artifacts():
     return model, scaler, features
 
 
-def preprocess_inputs(user_inputs, features, scaler):
-    base_vector = pd.Series(0, index=features, dtype=float)
+def preprocess_inputs(customer_inputs, features, scaler):
+    base_vector = pd.Series({f: 0 for f in features})
 
-    for key, value in user_inputs.items():
-        if key in base_vector.index:
+    # Fill provided values into base_vector
+    for key, value in customer_inputs.items():
+        if key in base_vector:
             base_vector[key] = value
+        else:
+            # For encoded categorical values
+            matching_cols = [col for col in features if col.startswith(key + "_")]
+            if matching_cols:
+                for col in matching_cols:
+                    target_value = col.split("_")[-1]
+                    base_vector[col] = 1 if str(value) == target_value else 0
 
-    # handle one-hot encoded categoricals where column names contain category value
-    ohe_mappings = {
-        "Country": "Country_",
-        "City": "City_",
-        "Signup_Quarter": "Signup_Quarter_",
-        "Membership_Stage": "Membership_Stage_",
-        "Seasonal_Activity": "Seasonal_Activity_"
-    }
-    for feature, prefix in ohe_mappings.items():
-        target_value = user_inputs.get(feature)
-        matching_cols = [col for col in features if col.startswith(prefix)]
-        for col in matching_cols:
-            base_vector[col] = 1 if col.endswith(f"_{target_value}") else 0
+    
+    base_vector = base_vector.reindex(scaler.feature_names_in_, fill_value=0)
 
     scaled_vector = scaler.transform([base_vector.values])[0]
     return scaled_vector.reshape(1, -1)
+
 
 
 def render_eda(raw_df):
