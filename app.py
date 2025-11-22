@@ -174,7 +174,8 @@ def render_prediction(model, scaler, features, model_df, raw_df):
 
 def render_cost_analysis(model, scaler, features, model_df):
     st.subheader("Cost-Sensitive Optimization")
-    X = model_df[features]
+    # Align model_df features with scaler expected features
+    x = model_df.reindex(columns=scaler.feature_names_in_, fill_value=0)
     y = model_df["Churned"]
     probs = model.predict_proba(scaler.transform(X))[:, 1]
     thresholds = np.linspace(0.1, 0.9, 25)
@@ -220,3 +221,4 @@ with tabs[2]:
 
 with tabs[3]:
     render_cost_analysis(model, scaler, features, model_df)
+
